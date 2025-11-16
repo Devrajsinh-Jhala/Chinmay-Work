@@ -1,0 +1,5 @@
+{
+  "name": "Live Q&A Slideshow",
+  "description": "A dynamic, full-screen Q&A presentation tool. Administrators can set questions and answers, and any updates are immediately prioritized in the live display queue, ensuring the latest changes are shown next.",
+  "requestFramePermissions": []
+}
