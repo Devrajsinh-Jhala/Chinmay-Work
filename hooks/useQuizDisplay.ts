@@ -22,6 +22,15 @@ export const useQuizDisplay = () => {
     currentIndexRef.current = currentIndex;
   }, [currentIndex]);
 
+  // When displayOrder changes (e.g., an item is removed), ensure currentIndex is valid.
+  useEffect(() => {
+    if (displayOrder.length > 0) {
+        setCurrentIndex(prev => Math.max(0, Math.min(prev, displayOrder.length - 1)));
+    } else {
+        setCurrentIndex(0);
+    }
+  }, [displayOrder]);
+
 
   useEffect(() => {
     const channel = getQuizChannel();
@@ -32,8 +41,10 @@ export const useQuizDisplay = () => {
         const oldQuestions = questionsRef.current;
         const localCurrentIndex = currentIndexRef.current;
         
+        const isReset = oldQuestions.length !== newQuestions.length;
         let updatedQuestionId: number | null = null;
-        if (oldQuestions.length === newQuestions.length) {
+
+        if (!isReset) {
           for (let i = 0; i < newQuestions.length; i++) {
              // A simple JSON diff is reliable for comparing answer arrays
             if (JSON.stringify(oldQuestions[i]?.answer) !== JSON.stringify(newQuestions[i]?.answer)) {
@@ -43,17 +54,29 @@ export const useQuizDisplay = () => {
           }
         }
         
-        if (hasNavigated.current && updatedQuestionId !== null) {
+        const newAnsweredIds = newQuestions.filter(q => q.answer.length > 0).map(q => q.id);
+
+        if (isReset || !hasNavigated.current) {
+          setDisplayOrder(newAnsweredIds);
+        } else if (updatedQuestionId !== null) {
+          const isNowAnswered = newQuestions.find(q => q.id === updatedQuestionId)!.answer.length > 0;
+
           setDisplayOrder(prevOrder => {
-            if (prevOrder[localCurrentIndex] === updatedQuestionId) {
-              return prevOrder; // Don't reorder if we are viewing the updated question
+            // If we're on the question that was updated and it still has an answer, do nothing to the order.
+            if (prevOrder[localCurrentIndex] === updatedQuestionId && isNowAnswered) {
+              return prevOrder;
             }
-            const newOrder = prevOrder.filter(id => id !== updatedQuestionId);
-            newOrder.splice(localCurrentIndex + 1, 0, updatedQuestionId);
+
+            // Remove the updated question from its current position (if it exists).
+            let newOrder = prevOrder.filter(id => id !== updatedQuestionId);
+
+            // If the question now has an answer, add it after the current index.
+            if (isNowAnswered) {
+              newOrder.splice(localCurrentIndex + 1, 0, updatedQuestionId);
+            }
+            
             return newOrder;
           });
-        } else if (!hasNavigated.current) {
-          setDisplayOrder(newQuestions.map(q => q.id));
         }
 
         setQuestions(newQuestions);
@@ -68,7 +91,9 @@ export const useQuizDisplay = () => {
       if (savedState) {
         const initialQuestions: Question[] = JSON.parse(savedState);
         setQuestions(initialQuestions);
-        setDisplayOrder(initialQuestions.map(q => q.id));
+        // On initial load, only show questions with answers.
+        const answeredIds = initialQuestions.filter(q => q.answer.length > 0).map(q => q.id);
+        setDisplayOrder(answeredIds);
       }
     } catch (error) {
       console.error("Failed to load or parse quiz state from localStorage", error);
@@ -76,8 +101,6 @@ export const useQuizDisplay = () => {
 
     return () => {
       channel.removeEventListener('message', handleMessage);
-      // Do not close the channel here, as other tabs might still be using it.
-      // The channel will be closed when the browser tab itself is closed.
     };
   }, []); // This effect should only run once on mount
 
