@@ -9,11 +9,19 @@ export const useQuizDisplay = () => {
   const [displayOrder, setDisplayOrder] = useState<number[]>([]);
   const [currentIndex, setCurrentIndex] = useState<number>(0);
   const hasNavigated = useRef<boolean>(false);
+  
+  // Refs to avoid stale closures in the message handler
   const questionsRef = useRef<Question[]>([]);
+  const currentIndexRef = useRef<number>(0);
 
   useEffect(() => {
     questionsRef.current = questions;
   }, [questions]);
+
+  useEffect(() => {
+    currentIndexRef.current = currentIndex;
+  }, [currentIndex]);
+
 
   useEffect(() => {
     const channel = getQuizChannel();
@@ -22,6 +30,7 @@ export const useQuizDisplay = () => {
       if (event.data?.type === 'state_update') {
         const newQuestions: Question[] = event.data.payload;
         const oldQuestions = questionsRef.current;
+        const localCurrentIndex = currentIndexRef.current;
         
         let updatedQuestionId: number | null = null;
         if (oldQuestions.length === newQuestions.length) {
@@ -36,11 +45,11 @@ export const useQuizDisplay = () => {
         
         if (hasNavigated.current && updatedQuestionId !== null) {
           setDisplayOrder(prevOrder => {
-            if (prevOrder[currentIndex] === updatedQuestionId) {
+            if (prevOrder[localCurrentIndex] === updatedQuestionId) {
               return prevOrder; // Don't reorder if we are viewing the updated question
             }
             const newOrder = prevOrder.filter(id => id !== updatedQuestionId);
-            newOrder.splice(currentIndex + 1, 0, updatedQuestionId);
+            newOrder.splice(localCurrentIndex + 1, 0, updatedQuestionId);
             return newOrder;
           });
         } else if (!hasNavigated.current) {
@@ -67,9 +76,10 @@ export const useQuizDisplay = () => {
 
     return () => {
       channel.removeEventListener('message', handleMessage);
-      channel.close();
+      // Do not close the channel here, as other tabs might still be using it.
+      // The channel will be closed when the browser tab itself is closed.
     };
-  }, [currentIndex]);
+  }, []); // This effect should only run once on mount
 
   const nextQuestion = useCallback(() => {
     if (!hasNavigated.current) hasNavigated.current = true;

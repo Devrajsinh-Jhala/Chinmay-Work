@@ -43,29 +43,16 @@ export const useQuizAdmin = () => {
   }, []);
 
   const updateAnswer = useCallback((questionId: number, answerOption: AnswerOption) => {
-    setQuestions(currentQuestions => {
-      const newQuestions = currentQuestions.map(q => {
-        if (q.id === questionId) {
-          const newAnswer = q.answer.includes(answerOption)
-            ? q.answer.filter(a => a !== answerOption)
-            : [...q.answer, answerOption];
-          return { ...q, answer: newAnswer.sort() };
-        }
-        return q;
-      });
-      // The broadcast happens in a separate effect to ensure it sends the updated state.
-      return newQuestions;
+    const newQuestions = questions.map(q => {
+      if (q.id === questionId) {
+        const newAnswer = q.answer.includes(answerOption)
+          ? q.answer.filter(a => a !== answerOption)
+          : [...q.answer, answerOption];
+        return { ...q, answer: newAnswer.sort() };
+      }
+      return q;
     });
-  }, []);
-
-  // Effect to broadcast changes after state update
-  useEffect(() => {
-    // This effect ensures that we broadcast the state *after* it has been updated.
-    // It's a reliable way to handle the async nature of setState.
-    // We skip the initial empty state on mount.
-    if (questions.length > 0 || localStorage.getItem(QUIZ_STATE_KEY)) {
-        updateStateAndBroadcast(questions);
-    }
+    updateStateAndBroadcast(newQuestions);
   }, [questions]);
 
 

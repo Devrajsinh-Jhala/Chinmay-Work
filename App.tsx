@@ -31,7 +31,12 @@ const AppRouter: React.FC = () => {
   if (hash === '#/admin') {
     return <AdminPage />;
   }
-  // Default to display view
+  
+  if (hash === '#/display') {
+    return <DisplayPage />;
+  }
+
+  // Default to display view if hash is something else but not empty
   return <DisplayPage />;
 };
 
@@ -54,12 +59,12 @@ const App: React.FC = () => {
                     This is a client-server application. Please open the Admin Panel to control the questions and the Display View to show them. For the best experience, open them in separate browser tabs.
                 </p>
                 <div className="flex flex-col sm:flex-row justify-center gap-4">
-                    <a href="#/admin" className="px-6 py-3 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:ring-opacity-75 transition-all duration-200">
+                    <button onClick={() => window.location.hash = '#/admin'} className="px-6 py-3 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:ring-opacity-75 transition-all duration-200">
                         Open Admin Panel
-                    </a>
-                    <a href="#/display" className="px-6 py-3 bg-slate-700 text-white font-semibold rounded-lg shadow-md hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-opacity-75 transition-all duration-200">
+                    </button>
+                    <button onClick={() => window.location.hash = '#/display'} className="px-6 py-3 bg-slate-700 text-white font-semibold rounded-lg shadow-md hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-opacity-75 transition-all duration-200">
                         Open Display View
-                    </a>
+                    </button>
                 </div>
              </div>
         </div>
